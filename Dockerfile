@@ -1,5 +1,8 @@
 FROM nvcr.io/nvidia/pytorch:19.04-py3
 
+RUN  sed -i s@/archive.ubuntu.com/@/mirrors.163.com/@g /etc/apt/sources.list
+
+
 RUN apt-get -y update && apt-get install -y \
 	python3-pip \
 	software-properties-common \
@@ -8,6 +11,13 @@ RUN apt-get -y update && apt-get install -y \
 	libcurl4-openssl-dev \
 	libssl-dev \
 	ffmpeg
+
+RUN pip3 install -U pip -i https://pypi.tuna.tsinghua.edu.cn/simple
+
+RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple 
+
+RUN pip install jupyterlab==1.2.4 
+
 
 RUN apt-get clean
 RUN update-ca-certificates -f
@@ -26,27 +36,14 @@ RUN wget -O /root/.torch/models/resnet34-333f7ec4.pth https://download.pytorch.o
 COPY Dockerfile ColorizeArtistic_gen.* /data/models/
 COPY Dockerfile ColorizeVideo_gen.* /data/models/
 
-RUN pip install --upgrade pip \
-	&& pip install versioneer==0.18 \
-		tensorboardX==1.6 \
-		Flask==1.1.1 \
-		pillow==6.1 \
-		numpy==1.16 \
-		scikit-image==0.15.0 \
-		requests==2.21.0 \
-		ffmpeg-python==0.1.17 \
-		youtube-dl>=2019.4.17 \
-		jupyterlab==1.2.4 \
-		opencv-python>=3.3.0.10 \
-		fastai==1.0.51
 
 ADD . /data/
 
 WORKDIR /data
 
 # force download of file if not provided by local cache
-RUN [[ ! -f /data/models/ColorizeArtistic_gen.pth ]] && wget -O /data/models/ColorizeArtistic_gen.pth https://data.deepai.org/deoldify/ColorizeArtistic_gen.pth
-RUN [[ ! -f /data/models/ColorizeVideo_gen.pth ]] && wget -O /data/models/ColorizeVideo_gen.pth https://data.deepai.org/deoldify/ColorizeVideo_gen.pth
+#RUN [[ ! -f /data/models/ColorizeArtistic_gen.pth ]] && wget -O /data/models/ColorizeArtistic_gen.pth https://data.deepai.org/deoldify/ColorizeArtistic_gen.pth
+#RUN [[ ! -f /data/models/ColorizeVideo_gen.pth ]] && wget -O /data/models/ColorizeVideo_gen.pth https://data.deepai.org/deoldify/ColorizeVideo_gen.pth
 
 COPY run_notebook.sh /usr/local/bin/run_notebook
 COPY run_image_api.sh /usr/local/bin/run_image_api

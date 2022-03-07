@@ -1,8 +1,11 @@
 from fastai import *
 from fastai.core import *
 from fastai.vision.transform import get_transforms
-from fastai.vision.data import ImageImageList, ImageDataBunch, imagenet_stats
+# from fastai.vision.data import ImageImageList, ImageDataBunch, imagenet_stats
+from fastai.vision.data import ImageDataLoaders
 
+# class ImageImageList2(ImageImageList):
+    
 
 def get_colorize_data(
     sz: int,
@@ -17,10 +20,14 @@ def get_colorize_data(
 ) -> ImageDataBunch:
     
     src = (
-        ImageImageList.from_folder(crappy_path, convert_mode='RGB')
-        .use_partial_data(sample_pct=keep_pct, seed=random_seed)
-        .split_by_rand_pct(0.1, seed=random_seed)
+        #ImageDataLoaders.from_folder(path, valid_pct=0.1)
+         ImageImageList.from_folder(crappy_path, convert_mode='RGB')
+         .use_partial_data(sample_pct=keep_pct, seed=random_seed)
+         .split_by_rand_pct(0.1, seed=random_seed)
     )
+
+    print(src)
+    print("----")
 
     data = (
         src.label_from_func(lambda x: good_path / x.relative_to(crappy_path))
@@ -35,7 +42,8 @@ def get_colorize_data(
         .normalize(stats, do_y=True)
     )
 
-    data.c = 3
+    data.c = 2
+    print(data)
     return data
 
 

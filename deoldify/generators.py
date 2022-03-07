@@ -37,6 +37,8 @@ def gen_learner_wide(
     )
 
 
+from fastai.vision.models.unet import DynamicUnet
+import torch
 # The code below is meant to be merged into fastaiv1 ideally
 def unet_learner_wide(
     data: DataBunch,
@@ -55,22 +57,32 @@ def unet_learner_wide(
 ) -> Learner:
     "Build Unet learner from `data` and `arch`."
     meta = cnn_config(arch)
-    body = create_body(arch, pretrained)
-    model = to_device(
-        DynamicUnetWide(
-            body,
-            n_classes=data.c,
-            blur=blur,
-            blur_final=blur_final,
-            self_attention=self_attention,
-            y_range=y_range,
-            norm_type=norm_type,
-            last_cross=last_cross,
-            bottle=bottle,
-            nf_factor=nf_factor,
-        ),
-        data.device,
-    )
+    body = create_body(arch, n_in=1, pretrained=pretrained,cut=-2)
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    net_G = DynamicUnet(body, 2, (256,256)).to(device)
+
+    model = net_G
+    #print(net_G)
+
+    #model = to_device(
+    #    DynamicUnetWide(
+    #        body,
+    #        n_classes=data.c,
+    #        blur=blur,
+    #        blur_final=blur_final,
+    #        self_attention=self_attention,
+    #        y_range=y_range,
+    #        norm_type=norm_type,
+    #        last_cross=last_cross,
+    #        bottle=bottle,
+    #        nf_factor=nf_factor,
+    #    ),
+    #    data.device,
+    #)
+
+    print(model)
     learn = Learner(data, model, **kwargs)
     learn.split(ifnone(split_on, meta['split']))
     if pretrained:
