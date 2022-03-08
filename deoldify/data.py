@@ -58,7 +58,6 @@ def bb_pad_collate(samples:BatchSamples, pad_idx:int=0) -> Tuple[FloatTensor, Tu
     return torch.cat(imgs,0), (bboxes,labels)
 
 def normalize(x:TensorImage, mean:FloatTensor,std:FloatTensor)->TensorImage:
-    print(x)
     "Normalize `x` with `mean` and `std`."
     return (x-mean[...,None,None]) / std[...,None,None]
 
@@ -288,7 +287,7 @@ class LabImage(Image):
 
     def refresh(self)->None:
         "Apply any logit, flow, or affine transfers that have been sent to the `Image`."
-        print("cccustom")
+        #print("cccustom")
         super().refresh()
         img = image2np(self._px*255).astype(np.uint8)
         img_lab = rgb2lab(img).astype("float32")  # Converting RGB to L*a*b
@@ -396,23 +395,26 @@ class LabImageList(ItemList):
     def show_xyzs(self, xs, ys, zs, imgsize:int=4, figsize:Optional[Tuple[int,int]]=None, **kwargs):
         "Show `xs` (inputs), `ys` (targets) and `zs` (predictions) on a figure of `figsize`."
         if self._square_show_res:
-            print("xs=",xs)
-            print("ys=",ys)
-            print("zs=",zs)
+            #print("xs=",xs)
+            #print("ys=",ys)
+            #print("zs=",zs)
             title = 'Ground truth\nPredictions'
             rows = int(np.ceil(math.sqrt(len(xs))))
             axs = subplots(rows, rows, imgsize=imgsize, figsize=figsize, title=title, weight='bold', size=12)
             for x,y,z,ax in zip(xs,ys,zs,axs.flatten()): 
-                print(x)
-                print(y)
-                print(z)
+                #print(x)
+                #print(y)
+                #print(z)
                 l = x.px
                 ab = y.px
                 t = lab_to_rgb(l,ab) 
-                plt.imshow(t)
                 pr = lab_to_rgb(l,z.px) 
+                plt.figure()
+                plt.subplot(1,2,1)
+                plt.imshow(t)
+                plt.subplot(1,2,2)
                 plt.imshow(pr)
-
+                plt.show()
                 #Image(t).show(ax=ax, title=f'{str(y)}\n{str(z)}', **kwargs) 
                 #x.show(ax=ax, title=f'{str(y)}\n{str(z)}', **kwargs)
             for ax in axs.flatten()[len(xs):]: ax.axis('off')
