@@ -11,6 +11,7 @@ from skimage.color import rgb2lab, lab2rgb
 from torchvision import transforms
 from numbers import Integral
 import torch
+from matplotlib import pyplot as plt
 
 __all__ = ['get_image_files', 'denormalize', 'get_annotations', 'LabImageDataBunch',
            'LabImageList', 'normalize', 'normalize_funcs', 'resize_to',
@@ -214,6 +215,29 @@ def verify_images(path:PathOrStr, delete:bool=True, max_workers:int=4, max_size:
                    ext=ext, img_format=img_format, resume=resume, **kwargs)
     parallel(func, files, max_workers=max_workers)
 
+def np2image(a)->TensorImage:
+    if a.ndim==2 : a = np.expand_dims(a,2)
+    a = np.transpose(a, (1, 0, 2))
+    a = np.transpose(a, (2, 1, 0))
+    dtype = np.float32
+    return torch.from_numpy(a.astype(dtype, copy=False) )
+
+def lab_to_rgb(L, ab):
+    """
+    Takes a batch of images
+    """
+
+    L = (L + 1.) * 50.
+    ab = ab * 110.
+    Lab = torch.cat([L, ab], dim=0).permute(1,2,0).cpu().numpy()
+    img_rgb = lab2rgb(Lab)
+    return img_rgb
+    #rgb_imgs = []
+    #for img in Lab:
+    #    img_rgb = lab2rgb(img)
+    #    rgb_imgs.append(img_rgb)
+    #return np.stack(rgb_imgs, axis=0)
+
 
 def open_lab_image(fn:PathOrStr, div:bool=True, convert_mode:str='RGB',
         after_open:Callable=None):
@@ -237,6 +261,9 @@ def open_lab_image(fn:PathOrStr, div:bool=True, convert_mode:str='RGB',
     #print(x.shape)
     if div: x.div_(255)
 
+    #img_rgb = lab_to_rgb(L,ab)
+    #plt.imshow(img_rgb)
+    #print(img_rgb)
     return LabImage(px = x, l = L, ab = ab)
 
 
@@ -270,8 +297,7 @@ class LabImage(Image):
         ab = img_lab[[1, 2], ...] / 110.  # Between -1 and 1
         self.l = L
         self.ab = ab
-        print(self)
-        
+
         return self
 
 
@@ -356,7 +382,8 @@ class LabImageList(ItemList):
         df = pd.read_csv(path/csv_name, header=header)
         return cls.from_df(df, path=path, **kwargs)
 
-    def reconstruct(self, t:Tensor): return Image(t.float().clamp(min=0,max=1))
+    def reconstruct(self, t:Tensor): 
+        return Image(t.float())
 
     def show_xys(self, xs, ys, imgsize:int=4, figsize:Optional[Tuple[int,int]]=None, **kwargs):
         "Show the `xs` (inputs) and `ys` (targets) on a figure of `figsize`."
@@ -369,10 +396,25 @@ class LabImageList(ItemList):
     def show_xyzs(self, xs, ys, zs, imgsize:int=4, figsize:Optional[Tuple[int,int]]=None, **kwargs):
         "Show `xs` (inputs), `ys` (targets) and `zs` (predictions) on a figure of `figsize`."
         if self._square_show_res:
+            print("xs=",xs)
+            print("ys=",ys)
+            print("zs=",zs)
             title = 'Ground truth\nPredictions'
             rows = int(np.ceil(math.sqrt(len(xs))))
             axs = subplots(rows, rows, imgsize=imgsize, figsize=figsize, title=title, weight='bold', size=12)
-            for x,y,z,ax in zip(xs,ys,zs,axs.flatten()): x.show(ax=ax, title=f'{str(y)}\n{str(z)}', **kwargs)
+            for x,y,z,ax in zip(xs,ys,zs,axs.flatten()): 
+                print(x)
+                print(y)
+                print(z)
+                l = x.px
+                ab = y.px
+                t = lab_to_rgb(l,ab) 
+                plt.imshow(t)
+                pr = lab_to_rgb(l,z.px) 
+                plt.imshow(pr)
+
+                #Image(t).show(ax=ax, title=f'{str(y)}\n{str(z)}', **kwargs) 
+                #x.show(ax=ax, title=f'{str(y)}\n{str(z)}', **kwargs)
             for ax in axs.flatten()[len(xs):]: ax.axis('off')
         else:
             title = 'Ground truth/Predictions'
